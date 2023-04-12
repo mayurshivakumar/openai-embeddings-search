@@ -1,8 +1,8 @@
 [openai]
-openai_api_key = "add me !!!"
+openai_api_key = "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"
 openai_embedded_search_model = "text-embedding-ada-002"
 [database]
-pinecone_api_key = "add me !!!"
+pinecone_api_key = "2f96b396-8910-450f-89f9-1f6b399a4fc1"
 pinecone_index = "semantic-search-openai"
 pinecone_environment = "us-east1-gcp"
 pinecone_dimension = 1536

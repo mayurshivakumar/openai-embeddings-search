@@ -10,9 +10,14 @@ pandas = "*"
 configparser = "*"
 pinecone-client = "*"
 toml = "*"
+numpy = "*"
+matplotlib = "*"
+plotly = "*"
+scipy = "*"
+tenacity = "*"
+scikit-learn = "0.20"
 
 [dev-packages]
-
 
 [requires]
 python_version = "3.9"

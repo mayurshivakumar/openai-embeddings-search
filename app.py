@@ -1,8 +1,10 @@
+import numpy as np
 import toml
 from flask import Flask, request, render_template
 import pandas as pd
+from openai.embeddings_utils import cosine_similarity
 
-from openai_client import EmbeddedClient1
+from openai_client import EmbeddedClient
 from pinecone_client import PineconeClient
 
 app = Flask(__name__)
@@ -23,23 +25,50 @@ def load():
     """
     Loads data from a CSV file and upserts embeddings into a Pinecone index.
 
+    Args:
+        file (str, optional): The name of the CSV file to load. Defaults to 'sample.csv'.
+
     Returns:
-        str: An done  indicating that the function has completed successfully.
+        str: A message indicating that the function has completed successfully.
+
+    Raises:
+        ValueError: If the file does not exist or is not a valid CSV file.
+
+    Example:
+        To load data from a file called "mydata.csv":
+        ```
+        http://localhost:5000/load_data?file=mydata.csv
+        ```
     """
     pine_client = PineconeClient(pinecone_index_name, pinecone_environment, pinecone_api_key, pinecone_dimension)
-    openai_embedded_client = EmbeddedClient1(openai_api_key, openai_embedded_search_model)
+    openai_embedded_client = EmbeddedClient(openai_api_key, openai_embedded_search_model)
+
     file_name = request.args.get('file')
     if file_name is None:
         file_name = 'sample.csv'
-    csv = pd.read_csv(file_name)
+
+    # Create embeddings for positive and negative labels
+    labels = ['negative', 'positive']
+    label_embeddings = [openai_embedded_client.create(i) for i in labels]
+
+    # Load CSV file and upsert embeddings to Pinecone index
+    try:
+        csv = pd.read_csv(file_name)
+    except FileNotFoundError:
+        raise ValueError(f"File '{file_name}' does not exist")
+    except pd.errors.EmptyDataError:
+        raise ValueError(f"File '{file_name}' is empty or not a valid CSV file")
 
     count = 1
     for _, row in csv.iterrows():
         embeds = openai_embedded_client.create(row['text'])
-        to_upsert = zip([str(count)], [embeds], [{'text': row['text']}])
+        sim = [cosine_similarity(embeds, i) for i in label_embeddings]
+        prediction = labels[np.argmax(sim)]
+        to_upsert = zip([str(count)], [embeds], [{'text': row['text'], 'prediction': prediction}])
         pine_client.upsert_vectors(list(to_upsert))
         count = count + 1
     return 'done'
+
 
 
 # TODO add a endpoint to upload a csv file
@@ -65,7 +94,7 @@ def search():
     """
     query = request.args.get('query')
 
-    openai_embedded_client = EmbeddedClient1(openai_api_key, openai_embedded_search_model)
+    openai_embedded_client = EmbeddedClient(openai_api_key, openai_embedded_search_model)
     embeds = openai_embedded_client.create(query)
 
     pine_client = PineconeClient(pinecone_index_name, pinecone_environment, pinecone_api_key, pinecone_dimension)
@@ -73,7 +102,12 @@ def search():
     matches = pine_client.query(embeds)
     results = []
     for txt in matches:
-        results.append(txt['metadata']['text'])
+        results.append(
+            {
+                'text': txt['metadata']['text'],
+                'prediction': txt['metadata']['prediction']
+            }
+        )
 
     return render_template('search_results.html', query=query, results=results)
 

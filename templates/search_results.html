@@ -14,7 +14,9 @@
     {% if results %}
     <ul>
         {% for result in results %}
-        <li>"{{ result }}"</li>
+        <li>sentiment:"{{ result['prediction'] }}"<br>
+        "{{ result['text'] }}"
+        </li>
         {% endfor %}
     </ul>
     {% else %}

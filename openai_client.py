@@ -1,7 +1,7 @@
 import openai
 
 
-class EmbeddedClient1:
+class EmbeddedClient:
     """
     A class representing a client for creating embeddings using OpenAI's API.
 
