@@ -10,17 +10,22 @@
     <input type="submit" value="search">
 </form>
 <div id="results">
-    <h1>Search Results</h1>
-    {% if results %}
-    <ul>
-        {% for result in results %}
-        <li>sentiment:"{{ result['prediction'] }}"<br>
-        "{{ result['text'] }}"
-        </li>
-        {% endfor %}
-    </ul>
+
+    {%if is_safe %}
+        <h1>Search Results</h1>
+        {% if results %}
+        <ul>
+            {% for result in results %}
+            <li>sentiment:"{{ result['prediction'] }}"<br>
+            "{{ result['text'] }}"
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>No results found.</p>
+        {% endif %}
     {% else %}
-    <p>No results found.</p>
+       <h1>Content classified as {{ moderation_classification }}</h1>
     {% endif %}
 </div>
 </body>

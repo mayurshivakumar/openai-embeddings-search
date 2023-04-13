@@ -4,7 +4,8 @@ from flask import Flask, request, render_template
 import pandas as pd
 from openai.embeddings_utils import cosine_similarity
 
-from openai_client import EmbeddedClient
+from openai_embedded_client import EmbeddedClient
+from openai_moderation_client import ModerationClient
 from pinecone_client import PineconeClient
 
 app = Flask(__name__)
@@ -14,6 +15,7 @@ config = toml.load("config.toml")
 # Get values from our .ini file
 openai_api_key = config.get("openai").get("openai_api_key")
 openai_embedded_search_model = config.get("openai").get("openai_embedded_search_model")
+openai_moderation_model = config.get("openai").get("openai_moderation_model")
 pinecone_dimension = config.get("openai").get("pinecone_dimension")
 pinecone_api_key = config.get("database").get("pinecone_api_key")
 pinecone_index_name = config.get("database").get("pinecone_index")
@@ -70,7 +72,6 @@ def load():
     return 'done'
 
 
-
 # TODO add a endpoint to upload a csv file
 
 @app.route('/')
@@ -93,6 +94,14 @@ def search():
         str: The rendered HTML for the search results page, which includes the query and a list of matching results.
     """
     query = request.args.get('query')
+    openai_moderation_client = ModerationClient(openai_api_key, openai_moderation_model)
+    is_safe, moderation_classification = openai_moderation_client.is_safe(query)
+    if not is_safe:
+        return render_template('search_results.html',
+                               query=query,
+                               is_safe=is_safe,
+                               moderation_classification=moderation_classification
+                               )
 
     openai_embedded_client = EmbeddedClient(openai_api_key, openai_embedded_search_model)
     embeds = openai_embedded_client.create(query)
@@ -109,7 +118,7 @@ def search():
             }
         )
 
-    return render_template('search_results.html', query=query, results=results)
+    return render_template('search_results.html', query=query, is_safe=is_safe, results=results)
 
 
 if __name__ == '__main__':
