@@ -10,7 +10,7 @@ class EmbeddedClient:
         search_model (str): The name of the OpenAI model to use for creating embeddings.
 
     Attributes:
-        search_model (str): The name of the OpenAI model being used for creating embeddings.
+        model (str): The name of the OpenAI model being used for creating embeddings.
 
     Methods:
         create: Creates an embedding for a given text using the OpenAI API.
@@ -26,7 +26,7 @@ class EmbeddedClient:
             search_model (str): The name of the OpenAI model to use for creating embeddings.
         """
         openai.api_key = api_key
-        self.search_model = search_model
+        self.model = search_model
 
     def create(self, text: str):
         """
@@ -40,6 +40,6 @@ class EmbeddedClient:
         """
         response = openai.Embedding.create(
             input=text,
-            model=self.search_model
+            model=self.model
         )
         return response['data'][0]['embedding']

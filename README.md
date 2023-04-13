@@ -15,7 +15,6 @@ sentiments to indexes.
 
 It reads data from csv file and creates embeddings vectors using OpenAI APIs, runs cosine_similarity on it to 
 figure out either positive or negative and stores it in Pinecone index. And to search it creates embedding vectors 
-using OpenAI APIs and queries Pinecone index. It is
-configured to return to 5 search results.
+using OpenAI APIs and queries Pinecone index. Search query is moderated and is configured to return to 5 search results. 
 
 ![img.png](img.png)
