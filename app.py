@@ -7,6 +7,7 @@ from openai.embeddings_utils import cosine_similarity
 from openai_embedded_client import EmbeddedClient
 from openai_moderation_client import ModerationClient
 from pinecone_client import PineconeClient
+from search import Search
 
 app = Flask(__name__)
 
@@ -87,38 +88,16 @@ def search_form():
 
 @app.route('/search')
 def search():
-    """
-    Performs a search for embeddings similar to a given query using an OpenAI client and a Pinecone index.
-
-    Returns:
-        str: The rendered HTML for the search results page, which includes the query and a list of matching results.
-    """
     query = request.args.get('query')
     openai_moderation_client = ModerationClient(openai_api_key, openai_moderation_model)
-    is_safe, moderation_classification = openai_moderation_client.is_safe(query)
-    if not is_safe:
-        return render_template('search_results.html',
-                               query=query,
-                               is_safe=is_safe,
-                               moderation_classification=moderation_classification
-                               )
-
     openai_embedded_client = EmbeddedClient(openai_api_key, openai_embedded_search_model)
-    embeds = openai_embedded_client.create(query)
+    pine_cone_client = PineconeClient(pinecone_index_name, pinecone_environment, pinecone_api_key, pinecone_dimension)
 
-    pine_client = PineconeClient(pinecone_index_name, pinecone_environment, pinecone_api_key, pinecone_dimension)
+    is_safe, moderation_classification, results = Search.search(query, openai_moderation_client, openai_embedded_client
+                                                                , pine_cone_client)
 
-    matches = pine_client.query(embeds)
-    results = []
-    for txt in matches:
-        results.append(
-            {
-                'text': txt['metadata']['text'],
-                'prediction': txt['metadata']['prediction']
-            }
-        )
-
-    return render_template('search_results.html', query=query, is_safe=is_safe, results=results)
+    return render_template('search_results.html', query=query, is_safe=is_safe,
+                           moderation_classification=moderation_classification, results=results)
 
 
 if __name__ == '__main__':
