@@ -88,14 +88,31 @@ def search_form():
 
 @app.route('/search')
 def search():
+    """
+    Route to handle search queries from the user.
+
+    Parameters:
+        None.
+
+    Returns:
+        A rendered HTML template with search results and information about the search query.
+
+    """
+    # Get the query string from the URL parameters
     query = request.args.get('query')
+
+    # Create OpenAI moderation and embedding clients
     openai_moderation_client = ModerationClient(openai_api_key, openai_moderation_model)
     openai_embedded_client = EmbeddedClient(openai_api_key, openai_embedded_search_model)
+
+    # Create Pinecone client for similarity search
     pine_cone_client = PineconeClient(pinecone_index_name, pinecone_environment, pinecone_api_key, pinecone_dimension)
 
-    is_safe, moderation_classification, results = Search.search(query, openai_moderation_client, openai_embedded_client
-                                                                , pine_cone_client)
+    # Search for similar results using the query and clients created above
+    is_safe, moderation_classification, results = Search.search(query, openai_moderation_client, openai_embedded_client,
+                                                                 pine_cone_client)
 
+    # Render the search results using an HTML template
     return render_template('search_results.html', query=query, is_safe=is_safe,
                            moderation_classification=moderation_classification, results=results)
 
