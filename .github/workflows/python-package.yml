@@ -28,6 +28,7 @@ jobs:
     - name: Install pipenv
       run: curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
     - run: pip install openai
+    - run: pip install pinecone-client
     - run: pipenv install
     - name: Test with pytest
       run: |
