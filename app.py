@@ -4,6 +4,8 @@ from flask import Flask, request, render_template
 import pandas as pd
 from openai.embeddings_utils import cosine_similarity
 
+from csv_loader import CsvLoader
+from data_load import DataLoad
 from openai_embedded_client import EmbeddedClient
 from openai_moderation_client import ModerationClient
 from pinecone_client import PineconeClient
@@ -43,34 +45,13 @@ def load():
         http://localhost:5000/load_data?file=mydata.csv
         ```
     """
-    pine_client = PineconeClient(pinecone_index_name, pinecone_environment, pinecone_api_key, pinecone_dimension)
+    pinecone_client = PineconeClient(pinecone_index_name, pinecone_environment, pinecone_api_key, pinecone_dimension)
     openai_embedded_client = EmbeddedClient(openai_api_key, openai_embedded_search_model)
+    csv_loader = CsvLoader('sample.csv')
+    success = DataLoad.load_data(csv_loader, openai_embedded_client, pinecone_client, )
+    return success
 
-    file_name = request.args.get('file')
-    if file_name is None:
-        file_name = 'sample.csv'
 
-    # Create embeddings for positive and negative labels
-    labels = ['negative', 'positive']
-    label_embeddings = [openai_embedded_client.create(i) for i in labels]
-
-    # Load CSV file and upsert embeddings to Pinecone index
-    try:
-        csv = pd.read_csv(file_name)
-    except FileNotFoundError:
-        raise ValueError(f"File '{file_name}' does not exist")
-    except pd.errors.EmptyDataError:
-        raise ValueError(f"File '{file_name}' is empty or not a valid CSV file")
-
-    count = 1
-    for _, row in csv.iterrows():
-        embeds = openai_embedded_client.create(row['text'])
-        sim = [cosine_similarity(embeds, i) for i in label_embeddings]
-        prediction = labels[np.argmax(sim)]
-        to_upsert = zip([str(count)], [embeds], [{'text': row['text'], 'prediction': prediction}])
-        pine_client.upsert_vectors(list(to_upsert))
-        count = count + 1
-    return 'done'
 
 
 # TODO add a endpoint to upload a csv file
@@ -110,7 +91,7 @@ def search():
 
     # Search for similar results using the query and clients created above
     is_safe, moderation_classification, results = Search.search(query, openai_moderation_client, openai_embedded_client,
-                                                                 pine_cone_client)
+                                                                pine_cone_client)
 
     # Render the search results using an HTML template
     return render_template('search_results.html', query=query, is_safe=is_safe,
